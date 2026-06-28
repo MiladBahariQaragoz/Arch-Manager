@@ -2,10 +2,12 @@
 
 On every KDE Plasma login this:
 
-1. Runs `aggregate.py`, which reads your three source files
+1. Runs `sync_study.py`, which rebuilds the `## Exams` section of `study.md`
+   from the SS26 course files (`SS26/Exams.md` + `SS26/course-progress-report.md`).
+2. Runs `aggregate.py`, which reads your three source files
    (`study.md`, `work.md`, `others.md`), archives finished items to `done.md`,
    and writes a sorted `plan.md` (overdue tasks and at-risk exams float to top).
-2. Sends `plan.md` to the Groq API and shows a short daily plan
+3. Sends `plan.md` to the Groq API and shows a short daily plan
    (top 3 priorities + warnings) in a `kdialog` popup.
 
 If you're offline or the API fails, it shows the raw (freshly aggregated)
@@ -15,22 +17,37 @@ If you're offline or the API fails, it shows the raw (freshly aggregated)
 
 | File | Purpose |
 |------|---------|
-| `daily-plan.sh` | Orchestrator (bash + curl + jq): aggregate → Groq → popup. |
+| `daily-plan.sh` | Orchestrator (bash + curl + jq): sync → aggregate → Groq → popup. |
+| `sync_study.py` | Rebuilds `study.md` exams from the SS26 course files. Stdlib only. |
 | `aggregate.py` | Parses source files, archives done items, writes `plan.md`. Stdlib only. |
 | `groq.env` | Holds `GROQ_API_KEY`. **Gitignored — never commit.** |
 | `daily-plan.desktop` | XDG autostart entry. |
 
-## Source files (in `/home/sudo/GoogleDrive/`)
+## Source files (in `/home/sudo/GoogleDrive/Planner/`)
 
 You edit these; everything else is generated.
 
-- **`study.md`** — `## Tasks` (one-off `- [ ]` items, optional `| due: DATE`)
-  and `## Exams` (`- Name | date: YYYY-MM-DD | progress: N%`).
+- **`study.md`** — `## Tasks` (one-off `- [ ]` items, optional `| due: DATE`).
+  The `## Exams` section is **auto-generated** from the SS26 files each run —
+  don't hand-edit it (changes are overwritten).
 - **`work.md`** — `## Tasks` with `| due: DATE`.
 - **`others.md`** — `## Recurring` (`- Name | freq: ...`, never archived) and
   `## Tasks`.
 - **`plan.md`** — *generated* rollup (do not edit; overwritten each run).
 - **`done.md`** — *generated* archive of completed items, tagged with date.
+
+## SS26 exam sync
+
+`sync_study.py` reads two read-only files in `/home/sudo/GoogleDrive/SS26/`:
+
+- `Exams.md` — exam names + dates (no year; assumed 2026).
+- `course-progress-report.md` — per-course completion %.
+
+It matches course names across the two (normalised + fuzzy, so
+"Basics Sustainability" ↔ "Basic Sustainability" and short names like
+"Vibe Coding" resolve), then writes `study.md`'s `## Exams` section. Exams with
+no matching progress entry default to `progress: 0%`; TBA/undated exams are
+skipped.
 
 ### Rules
 
