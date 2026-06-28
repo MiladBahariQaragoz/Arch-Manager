@@ -106,6 +106,39 @@ All live under `~/Documents/Arch Manager/` unless noted.
 - Empty plan: verify the "plan empty" popup.
 - Long plan: verify `--textbox` scroll path.
 
+## Update — Multi-source aggregation (2026-06-28)
+
+`plan.md` is no longer hand-edited. It is generated each run from three source
+files by a new `aggregate.py` (Python stdlib, no deps), which runs first in
+`daily-plan.sh`, before the network/Groq step.
+
+### Source files (in `/home/sudo/GoogleDrive/`)
+- `study.md` — `## Tasks` (`- [ ]`, optional `| due:`) and `## Exams`
+  (`- Name | date: YYYY-MM-DD | progress: N%`).
+- `work.md` — `## Tasks` with `| due:`.
+- `others.md` — `## Recurring` (`| freq:`) and `## Tasks`.
+
+### aggregate.py behaviour
+1. Parses the three files; skips lines inside `<!-- -->` comment blocks.
+2. **Archives** completed items to `done.md` (tagged with today's date) and
+   removes them from their source file:
+   - tasks marked `- [x]`;
+   - exams whose `date` is in the past.
+   Recurring items are never archived.
+3. Computes urgency using today's date: overdue tasks, days-until, and
+   **at-risk** exams (≤7 days away and <70% progress).
+4. Writes `plan.md`: a `⚠️ Needs attention` section (overdue + at-risk),
+   then Tasks (soonest due first), Exams, Recurring.
+
+### Generated files (never hand-edited)
+- `plan.md` — overwritten each run.
+- `done.md` — append-only archive.
+
+### Design notes
+- Aggregation is deterministic and offline-safe; it runs regardless of network
+  so the fallback popup still shows a fresh `plan.md`.
+- Failures in `aggregate.py` must not abort the script (`|| true`).
+
 ## Out of Scope (YAGNI)
 
 - Scheduling more than once per login (no cron/timer).

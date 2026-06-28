@@ -1,16 +1,44 @@
 # Arch Daily Plan Startup Task
 
-On every KDE Plasma login, this reads your `plan.md`, sends it to the Groq API,
-and shows a short daily plan (top 3 priorities + warnings) in a `kdialog` popup.
-If you're offline or the API fails, it shows the raw `plan.md` instead.
+On every KDE Plasma login this:
+
+1. Runs `aggregate.py`, which reads your three source files
+   (`study.md`, `work.md`, `others.md`), archives finished items to `done.md`,
+   and writes a sorted `plan.md` (overdue tasks and at-risk exams float to top).
+2. Sends `plan.md` to the Groq API and shows a short daily plan
+   (top 3 priorities + warnings) in a `kdialog` popup.
+
+If you're offline or the API fails, it shows the raw (freshly aggregated)
+`plan.md` instead.
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `daily-plan.sh` | Main logic (bash + curl + jq). |
+| `daily-plan.sh` | Orchestrator (bash + curl + jq): aggregate → Groq → popup. |
+| `aggregate.py` | Parses source files, archives done items, writes `plan.md`. Stdlib only. |
 | `groq.env` | Holds `GROQ_API_KEY`. **Gitignored — never commit.** |
 | `daily-plan.desktop` | XDG autostart entry. |
+
+## Source files (in `/home/sudo/GoogleDrive/`)
+
+You edit these; everything else is generated.
+
+- **`study.md`** — `## Tasks` (one-off `- [ ]` items, optional `| due: DATE`)
+  and `## Exams` (`- Name | date: YYYY-MM-DD | progress: N%`).
+- **`work.md`** — `## Tasks` with `| due: DATE`.
+- **`others.md`** — `## Recurring` (`- Name | freq: ...`, never archived) and
+  `## Tasks`.
+- **`plan.md`** — *generated* rollup (do not edit; overwritten each run).
+- **`done.md`** — *generated* archive of completed items, tagged with date.
+
+### Rules
+
+- Mark a task `- [x]` → it moves to `done.md` with today's date on the next run.
+- An exam moves to `done.md` automatically once its `date` has passed.
+- An exam is flagged **at risk** when it's within 7 days and below 70% progress.
+- Wrap lines in `<!-- ... -->` to disable them without deleting.
+- Dates are ISO format: `YYYY-MM-DD`.
 
 ## Install
 
