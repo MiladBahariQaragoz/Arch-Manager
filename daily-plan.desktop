@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Daily Plan
+Comment=Show today's Groq-generated plan on login
+Exec="/home/sudo/Documents/Arch Manager/daily-plan.sh"
+Icon=view-calendar-day
+Terminal=false
+X-KDE-autostart-after=panel
+X-GNOME-Autostart-enabled=true

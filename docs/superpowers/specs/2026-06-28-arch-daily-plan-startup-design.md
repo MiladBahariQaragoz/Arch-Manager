@@ -106,6 +106,70 @@ All live under `~/Documents/Arch Manager/` unless noted.
 - Empty plan: verify the "plan empty" popup.
 - Long plan: verify `--textbox` scroll path.
 
+## Update — Multi-source aggregation (2026-06-28)
+
+`plan.md` is no longer hand-edited. It is generated each run from three source
+files by a new `aggregate.py` (Python stdlib, no deps), which runs first in
+`daily-plan.sh`, before the network/Groq step.
+
+### Source files (in `/home/sudo/GoogleDrive/`)
+- `study.md` — `## Tasks` (`- [ ]`, optional `| due:`) and `## Exams`
+  (`- Name | date: YYYY-MM-DD | progress: N%`).
+- `work.md` — `## Tasks` with `| due:`.
+- `others.md` — `## Recurring` (`| freq:`) and `## Tasks`.
+
+### aggregate.py behaviour
+1. Parses the three files; skips lines inside `<!-- -->` comment blocks.
+2. **Archives** completed items to `done.md` (tagged with today's date) and
+   removes them from their source file:
+   - tasks marked `- [x]`;
+   - exams whose `date` is in the past.
+   Recurring items are never archived.
+3. Computes urgency using today's date: overdue tasks, days-until, and
+   **at-risk** exams (≤7 days away and <70% progress).
+4. Writes `plan.md`: a `⚠️ Needs attention` section (overdue + at-risk),
+   then Tasks (soonest due first), Exams, Recurring.
+
+### Generated files (never hand-edited)
+- `plan.md` — overwritten each run.
+- `done.md` — append-only archive.
+
+### Design notes
+- Aggregation is deterministic and offline-safe; it runs regardless of network
+  so the fallback popup still shows a fresh `plan.md`.
+- Failures in `aggregate.py` must not abort the script (`|| true`).
+
+## Update — Planner folder + SS26 exam sync (2026-06-28)
+
+### Folder move
+All planner-managed markdown now lives in `/home/sudo/GoogleDrive/Planner/`
+(`study.md`, `work.md`, `others.md`, `plan.md`, `done.md`). Paths updated in
+`aggregate.py` (`DRIVE`) and `daily-plan.sh` (`PLAN_FILE`). The SS26 course
+files stay in `/home/sudo/GoogleDrive/SS26/`.
+
+### sync_study.py (new, runs before aggregate.py)
+Regenerates only the `## Exams` section of `study.md` from two read-only SS26
+files; the `## Tasks` section is preserved.
+
+- `SS26/Exams.md` — `- **Name**: Month DD` (no year → assumed 2026). TBA /
+  undated entries skipped.
+- `SS26/course-progress-report.md` — markdown table; completion % per course.
+- **Name matching:** normalise (drop parenthetical text, lowercase, keep
+  `[a-z0-9]`), then exact / substring / `difflib` ratio ≥ 0.85. Unmatched →
+  `progress: 0%`.
+- Output lines: `- Name | date: YYYY-MM-DD | progress: N%`, sorted by date,
+  preceded by an auto-generated warning comment.
+
+### Idempotency
+- `plan.md` is fully regenerated each run (no accumulation).
+- Past exams are archived to `done.md` by `aggregate.py`; because `sync_study.py`
+  re-adds them from SS26 on the next run, `append_done()` dedups on the
+  `[cat] title` suffix so each item is archived only once.
+
+### Pipeline
+`daily-plan.sh`: `sync_study.py` → `aggregate.py` → network/Groq → popup. Both
+Python steps are offline-safe and guarded with `|| true`.
+
 ## Out of Scope (YAGNI)
 
 - Scheduling more than once per login (no cron/timer).
