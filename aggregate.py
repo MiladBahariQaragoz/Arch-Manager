@@ -15,7 +15,7 @@ import datetime
 import re
 from pathlib import Path
 
-DRIVE = Path("/home/sudo/GoogleDrive")
+DRIVE = Path("/home/sudo/GoogleDrive/Planner")
 SOURCES = {
     "study": DRIVE / "study.md",
     "work": DRIVE / "work.md",
@@ -152,9 +152,20 @@ def append_done():
     if not archived:
         return
     text = DONE.read_text() if DONE.exists() else "# Done\n"
+    # Dedup on the "[cat] title" suffix so an item already archived on an
+    # earlier day (with a different date stamp) is not added again.
+    existing = set()
+    for line in text.splitlines():
+        m = re.match(r"^-\s+\S+\s+—\s+(\[.*)$", line)
+        if m:
+            existing.add(m.group(1).strip())
     text = text.rstrip("\n") + "\n"
     for cat, title in archived:
-        text += f"- {TODAY} — [{cat}] {title}\n"
+        key = f"[{cat}] {title}"
+        if key in existing:
+            continue
+        existing.add(key)
+        text += f"- {TODAY} — {key}\n"
     DONE.write_text(text)
 
 
