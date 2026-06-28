@@ -9,7 +9,7 @@ set -uo pipefail
 
 # --- Config ---------------------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PLAN_FILE="/home/sudo/GoogleDrive/plan.md"
+PLAN_FILE="/home/sudo/GoogleDrive/Planner/plan.md"
 ENV_FILE="${SCRIPT_DIR}/groq.env"
 GROQ_MODEL="llama-3.3-70b-versatile"
 GROQ_URL="https://api.groq.com/openai/v1/chat/completions"
@@ -56,8 +56,12 @@ net_up() {
 
 # --- Main -----------------------------------------------------------------
 
-# Aggregate study/work/others into plan.md and archive done items.
-# Runs offline-safe and independent of the API; failures must not abort.
+# Sync study.md exams from the SS26 course files, then aggregate study/work/
+# others into plan.md and archive done items. Both run offline-safe and are
+# independent of the API; failures must not abort the popup.
+if [[ -f "${SCRIPT_DIR}/sync_study.py" ]]; then
+    python3 "${SCRIPT_DIR}/sync_study.py" || true
+fi
 if [[ -f "${SCRIPT_DIR}/aggregate.py" ]]; then
     python3 "${SCRIPT_DIR}/aggregate.py" || true
 fi
