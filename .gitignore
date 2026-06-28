@@ -1,0 +1,14 @@
+# Secrets — never commit
+groq.env
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+
+# Node / build (in case tooling is added later)
+node_modules/
+dist/
+build/
+.next/
