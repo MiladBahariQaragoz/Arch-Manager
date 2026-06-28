@@ -56,6 +56,12 @@ net_up() {
 
 # --- Main -----------------------------------------------------------------
 
+# Aggregate study/work/others into plan.md and archive done items.
+# Runs offline-safe and independent of the API; failures must not abort.
+if [[ -f "${SCRIPT_DIR}/aggregate.py" ]]; then
+    python3 "${SCRIPT_DIR}/aggregate.py" || true
+fi
+
 # Load API key.
 if [[ -f "$ENV_FILE" ]]; then
     # shellcheck disable=SC1090
